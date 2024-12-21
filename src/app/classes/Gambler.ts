@@ -77,9 +77,9 @@ export class Gambler {
   }
 
   // Doubler la mise (Double Down)
-  doubleDown(hand: Hand, deck: Deck): Result<{ message: "Double Down", gambler: Gambler, hand: Hand }, { message: "Cannot Double Down", gambler: Gambler, hand: Hand }> {
+  doubleDown(hand: Hand, deck: Deck): Result<{ message: "Double Down", gambler: Gambler, hand: Hand, deck: Deck }, { message: "Cannot Double Down", gambler: Gambler, hand: Hand, deck: Deck }> {
     if (!this.canDoubleDown(hand)) {
-      return R.Error({ message: "Cannot Double Down", gambler: this, hand: hand });
+      return R.Error({ message: "Cannot Double Down", gambler: this, hand: hand, deck: deck });
     }
 
     const newGambler = new Gambler(
@@ -93,15 +93,17 @@ export class Gambler {
 
     const hitR = this.hit(newHand, deck);
     if (R.isOk(hitR)) {
-      return R.Ok({ message: "Double Down", gambler: newGambler, hand: newHand }); 
+      return R.Ok({ message: "Double Down", gambler: newGambler, hand: newHand, deck: R.getExn(hitR).deck }); 
     }
 
-    return R.Error({ message: "Cannot Double Down", gambler: this, hand: hand });
+    return R.Error({ message: "Cannot Double Down", gambler: this, hand: hand, deck: deck });
   }
 
   // Abandonner une main (Surrender)
-  surrender(hand: Hand): Gambler {
-    return new Gambler(this.id, this.name, N.add(this.tokens, N.divide(hand.bet, 2)), this.hands);
+  surrender(hand: Hand): { gambler : Gambler, hand: Hand } {
+    const newHand = new Hand(hand.id, N.divide(hand.bet, 2), hand.cards, true);
+    const newGambler = new Gambler(this.id, this.name, N.add(this.tokens, N.divide(hand.bet, 2)), this.hands);
+    return { gambler: newGambler, hand: newHand };
   }
 
   // Placer une mise
