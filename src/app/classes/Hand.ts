@@ -1,4 +1,4 @@
-import { A, O } from "@mobily/ts-belt";
+import { A } from "@mobily/ts-belt";
 import { Card } from "./Card";
 
 export class Hand {
