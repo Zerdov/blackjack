@@ -1,12 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { Game } from '../Game';
+import { Game } from '@/app/interfaces/Game';
 import { Deck } from '../Deck';
-import { Result } from '@/app/interfaces/Result';
 import { Hand } from '../Hand';
 import { Dealer } from '../Dealer';
 import { Gambler } from '../Gambler';
-import { R } from '@mobily/ts-belt'
+import { A, O, R } from '@mobily/ts-belt'
 
 export class GamesConnector {
   private filePath: string;
@@ -34,13 +33,11 @@ export class GamesConnector {
     }
   }
   
-  addGame(gambler: Gambler, bet: number): Result<Game> {
+  addGame(gambler: Gambler, bet: number): R.Result<{ success: true, message: string, data: Game }, { success: boolean, message: string, data: null }> {
     try {
       const gameId = Date.now();
       
-      const deck = new Deck([]);
-      deck.cards = deck.shuffle();
-      deck.shuffle();
+      const deck = new Deck([]).create().shuffle();
       
       const dealerHand = new Hand(crypto.randomUUID(), 0, [], false);
       const dealer = new Dealer([dealerHand]);
@@ -54,7 +51,7 @@ export class GamesConnector {
       const newGame: Game = 
       {
         id: gameId,
-        gambler_data: {
+        gamblerData: {
           id: gambler.id,
           hands: [
             gamblerHand
@@ -69,50 +66,78 @@ export class GamesConnector {
       games.push(newGame);
       this.saveFile(games);
   
-      return { success: true, message: 'Game added successfully!', data: newGame };
+      return R.Ok({ success: true, message: 'Game added successfully!', data: newGame });
     } catch (error) {
       console.error('Error adding new game:', error);
-      return { success: false, message: 'Failed to add game.' };
+      return R.Error({ success: false, message: 'Failed to add game.', data: null });
     }
   }
   
-  findGameById(id: number): Result<Game | null> {
+  findGameById(id: number): R.Result<{success: boolean, message: string, data: Game}, { success: false, message: string, data: null }> {
     try {
       const games = this.loadFile();
-      const game = games.find((game) => game.id === id) || null;
-      return {
-        success: !!game,
-        message: game ? 'Game found.' : 'Game not found.',
-        data: game,
+      const game = A.find(games, (game) => game.id === id);
+      if (O.isSome(game)) {
+        return R.Ok({ success: true, message: 'Game found.', data: O.getExn(game) });
       };
+      return R.Error({ success: false, message: 'Game not found.', data: null });
     } catch (error) {
       console.error(`Error finding game with ID ${id}:`, error);
-      return { success: false, message: 'Error finding game.' };
+      return R.Error({ success: false, message: 'Error finding game.', data: null });
     }
   }
   
-  updateGameById(id: number, updates: Partial<Game>): Result<Game> {
+  updateGameById(
+    id: number,
+    updates: Partial<Game>
+  ): R.Result<
+    { success: true; message: string; data: Game },
+    { success: false; message: string; data: null }
+  > {
     try {
+      // Charger les jeux depuis le fichier
       const games = this.loadFile();
-      const game = games.find((game) => game.id === id);
+      
+      // Trouver le jeu correspondant à l'ID
+      const gameOption = A.find(games, (game) => game.id === id);
   
-      if (!game) {
-        return { success: false, message: `Game with ID ${id} not found.` };
+      if (O.isNone(gameOption)) {
+        return R.Error({ success: false, message: 'Game not found.', data: null });
       }
   
-      const updatedGame = { ...game, ...updates };
+      const game = gameOption; // Extraire la valeur de l'Option
+      
+      // Fusionner les données existantes avec les mises à jour
+      const updatedGame: Game = {
+        ...game,
+        ...updates,
+        gamblerData: {
+          ...game.gamblerData,
+          ...updates.gamblerData,
+          hands: updates.gamblerData?.hands ?? game.gamblerData.hands,
+        },
+      };
   
-      const newGame = new Game(updatedGame.id, updatedGame.gambler_data, updatedGame.dealer, updatedGame.deck);
+      // Remplacer l'ancien jeu dans le tableau
+      const gameIndex = games.findIndex((g) => g.id === id);
+      games[gameIndex] = updatedGame;
   
-      const gameIndex = games.findIndex((game) => game.id === id);
-      games[gameIndex] = newGame;
-  
+      // Sauvegarder les jeux dans le fichier
       this.saveFile(games);
   
-      return { success: true, message: 'Game updated successfully!', data: newGame };
+      // Retourner le succès
+      return R.Ok({
+        success: true,
+        message: 'Game updated successfully.',
+        data: updatedGame,
+      });
     } catch (error) {
       console.error(`Error updating game with ID ${id}:`, error);
-      return { success: false, message: 'Failed to update game.' };
+      return R.Error({
+        success: false,
+        message: 'Error updating game.',
+        data: null,
+      });
     }
   }
   

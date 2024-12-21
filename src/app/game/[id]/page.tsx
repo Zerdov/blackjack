@@ -15,6 +15,12 @@ export default async function GamePage({ params }: { params: { gameId: string } 
   }
 
   return(
-    <p>Hello {game.data?.id}</p>
+    <section id="actions">
+      <button type="button">Hit</button>
+      <button type="button">Stand</button>
+      <button type="button">Double Down</button>
+      <button type="button">Split</button>
+      <button type="button">Surrend</button>
+    </section>
   )
 }
