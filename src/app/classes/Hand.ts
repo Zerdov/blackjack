@@ -65,4 +65,19 @@ export class Hand {
       .map(card => card.toString())
       .join(", ")} | Bet: ${this.bet} | Score: ${this.calculateScore()}`;
   }
+
+  // Reconstruire l'objet Hand depuis JSON
+  static fromJSON(data: any): Hand {    
+    return new Hand(data.id, data.bet, data.cards, data.stood);
+  }
+
+  // Convertir l'objet Hand en JSON
+  toJSON(): object {
+    return {
+      id: this.id,
+      bet: this.bet,
+      cards: this.cards,
+      stood: this.stood,
+    };
+  }
 }

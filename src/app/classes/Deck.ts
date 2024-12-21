@@ -40,4 +40,16 @@ export class Deck {
   toString(): string {
     return this.cards.map((card) => card.toString()).join("\n");
   }
+
+  // Reconstruire l'objet Deck depuis JSON
+  static fromJSON(data: any): Deck {
+    return new Deck(data.cards);
+  }
+
+  // Convertir l'objet Deck en JSON
+  toJSON(): object {
+    return {
+      cards: this.cards,
+    };
+  }
 }

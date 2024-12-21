@@ -34,4 +34,14 @@ export class Dealer {
       .map(hand => hand.toString())
       .join(", ")}`;
   }
+
+  static fromJSON(data: any): Dealer {
+    return new Dealer(data.hands.map((hand: any) => Hand.fromJSON(hand)));
+  }
+
+  toJSON(): object {
+    return {
+      hands: this.hands.map((hand) => hand.toJSON()),
+    };
+  }
 }

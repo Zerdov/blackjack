@@ -28,4 +28,15 @@ export class Card {
 	toString(): string{
 		return `${this.rank} of ${this.suit}`;
 	}
+
+	static fromJSON(data: any): Card {
+    return new Card(data.suit, data.rank);
+  }
+
+  toJSON(): object {
+    return {
+      suit: this.suit,
+      rank: this.rank,
+    };
+  }
 }

@@ -3,6 +3,7 @@ import { Hand } from "./Hand";
 import { Deck } from "./Deck";
 import { Card } from "./Card";
 import { matchR } from "@/utils/match";
+import { GamblersConnector } from "./connectors/GamblersConnector";
 
 export class Gambler {
   id: number;
@@ -121,9 +122,27 @@ export class Gambler {
   };
   
   // Affichage du joueur
-  gamblerToString(gambler: Gambler): string {
+  toString(gambler: Gambler): string {
     return `${gambler.name} | Tokens: ${gambler.tokens} | Hands: ${gambler.hands
       .map(hand => hand.toString())
       .join(", ")}`;
+  }
+
+  static fromJSON(data: any): Gambler {
+    const connector = new GamblersConnector();
+    const gambler = R.getExn(connector.findGamblerById(data.id));
+    return new Gambler(
+      data.id,
+      gambler.name,
+      gambler.tokens,
+      data.hands.map((hand: any) => Hand.fromJSON(hand))
+    );
+  }
+
+  toJSON(): object {
+    return {
+      id: this.id,
+      hands: this.hands.map((hand) => hand.toJSON()),
+    };
   }
 }
