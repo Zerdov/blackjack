@@ -11,7 +11,7 @@ export default function Home() {
     let result = -1;
 
     try {
-      const response = await fetch('/api/createGame', {
+      const response = await fetch('/api/phases/createGame', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export default function Home() {
     e.preventDefault();
     
     const request_result = (await createGame());
-    request_result > -1 ? redirectToNewGame(request_result.toString()) : null 
+    request_result > -1 ? redirectToNewGame(request_result.toString()) : window.location.reload(); 
   }
 
   return (

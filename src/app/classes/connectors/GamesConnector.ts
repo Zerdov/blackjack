@@ -58,7 +58,7 @@ export class GamesConnector {
           ]
         },  
         dealer: dealer,
-        status: "Not Started",
+        status: "Started",
         deck: deck
       } as Game
   
@@ -140,5 +140,4 @@ export class GamesConnector {
       });
     }
   }
-  
 }

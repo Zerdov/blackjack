@@ -1,5 +1,6 @@
 import { GamblersConnector } from '@/app/classes/connectors/GamblersConnector';
 import { GamesConnector } from '@/app/classes/connectors/GamesConnector';
+import { R } from '@mobily/ts-belt';
 
 export async function POST(req: { json: () => PromiseLike<{ bet: string; }> | { bet: string; }; }) {
   try {
@@ -14,15 +15,14 @@ export async function POST(req: { json: () => PromiseLike<{ bet: string; }> | { 
       return new Response(JSON.stringify({ message: 'Failed to update gambler tokens' }), { status: 400 });
     }
   
-    const gambler = gamblersConnector.findGamblerById(1).data;
-    console.log(gambler);
-    if (!gambler) {
+    const gambler = gamblersConnector.findGamblerById(1);
+    if (R.isError(gambler)) {
       return new Response(JSON.stringify({ message: 'Gambler not found' }), { status: 404 });
     }
 
-    const newGame = gamesConnector.addGame(gambler, intBet).data;
-    if (newGame) {
-      return new Response(JSON.stringify({ message: 'success', id: newGame.id }), { status: 200 });
+    const newGame = gamesConnector.addGame(R.getExn(gambler), intBet);
+    if (R.isOk(newGame)) {
+      return new Response(JSON.stringify({ message: 'success', id: R.getExn(newGame).data.id }), { status: 200 });
     } else {
       return new Response(JSON.stringify({ message: 'Failed to create game' }), { status: 500 });
     }
