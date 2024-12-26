@@ -30,13 +30,13 @@ export class Card {
 	}
 
 	static fromJSON(data: any): Card {
-    return new Card(data.suit, data.rank);
+    return new Card(data.rank, data.suit);
   }
 
   toJSON(): object {
     return {
-      suit: this.suit,
-      rank: this.rank,
+		rank: this.rank,
+		suit: this.suit,
     };
   }
 }

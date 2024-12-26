@@ -18,5 +18,5 @@ export const matchO = <TT, FnSomeRes, FnNoneRes>(
     None: () => FnNoneRes;
   },
 ): FnSomeRes | FnNoneRes => {
-  return O.isSome(option) ? cases.Some(option) : cases.None();
+  return O.isSome(option ?? O.None) ? cases.Some(O.getExn(option)) : cases.None();
 };
