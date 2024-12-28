@@ -15,14 +15,15 @@ export class Dealer {
     return new Dealer([hand, ...this.hands]);
   }
 
+  // Tir une carte du paquet
   hit(hand: Hand, deck: Deck): R.Result<{ hand: Hand, deck: Deck }, { hand: Hand, deck: Deck } > {
     return matchR(
       deck.drawCard(),
       {
-        Ok: ({ deck, card }) => R.Ok({ hand: hand.addCard(card), deck: deck }),
+        Ok: (data) => R.Ok({ hand: hand.addCard(data.card), deck: data.deck }),
         Err: (data) => R.Error({ hand: hand, deck: data.deck })
       }
-    )
+    );
   }
 
   stand(hand: Hand): Hand {

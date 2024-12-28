@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     const gamblerConnector = new GamblersConnector();
-    const gamblerResult = gamblerConnector.findGamblerById(gameId);
+    const gamblerResult = gamblerConnector.findGamblerById(1);
 
     // Vérification si le gambler existe
     if (R.isError(gamblerResult)) {
@@ -62,9 +62,9 @@ export async function POST(req: Request) {
     };
 
     // Gestion des hits
-    const afterDealerHit = test(dealer, dealer.hands[0]!, deck);
-    const afterGamblerHit1 = test(gambler, gambler.hands[0]!, afterDealerHit.deck);
-    const afterGamblerHit2 = test(gambler, gambler.hands[0]!, afterGamblerHit1.deck);
+    const afterDealerHit = test(dealer, Hand.fromJSON(dealer.hands[0]), deck);
+    const afterGamblerHit1 = test(gambler, Hand.fromJSON(gambler.hands[0]), afterDealerHit.deck);
+    const afterGamblerHit2 = test(gambler, afterGamblerHit1.hand, afterGamblerHit1.deck);
 
     // Mise à jour du jeu
     const updateResult = gameConnector.updateGameById(gameId, {
