@@ -8,11 +8,10 @@ import { Card } from '@/app/classes/Card';
 
 async function dealing(gameId: number):
   Promise<R.Result<{
-    gamblerHand: Hand
-    dealerHand: Hand
-    deck: Deck
-  }, string>> 
-{
+    gamblerHand: Hand;
+    dealerHand: Hand;
+    deck: Deck;
+  }, string>> {
   try {
     const response = await fetch('/api/phases/dealing', {
       method: 'POST',
@@ -32,7 +31,7 @@ async function dealing(gameId: number):
       return R.Ok({
         gamblerHand: data.gamblerHand,
         dealerHand: data.dealerHand,
-        deck: data.deck
+        deck: data.deck,
       });
     } else {
       return R.Error('Invalid response from server.');
@@ -43,76 +42,185 @@ async function dealing(gameId: number):
   }
 }
 
+async function performActionOnHand(gameId: number, handId: string, action: string): Promise<any> {
+  try {
+    const response = await fetch('/api/phases/actions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        gameId,
+        handId,
+        action,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorResponse = await response.json();
+      throw new Error(errorResponse.message || 'An error occurred while processing the action.');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error while performing action on hand:', error);
+    throw error;
+  }
+}
+
+async function performDealerTurn(gameId: number): Promise<R.Result<{ message: string; hand: any; deck: any }, { message: string }>> {
+  try {
+    const response = await fetch('/api/phases/dealer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ gameId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return R.Error({ message: errorData.message || 'Unknown error occurred.' });
+    }
+
+    const data = await response.json();
+    return R.Ok({
+      message: data.message,
+      hand: data.hand,
+      deck: data.deck,
+    });
+  } catch (error) {
+    console.error('Error during fetch:', error);
+    return R.Error({ message: 'Failed to reach the server.' });
+  }
+}
+
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
   const [gameId, setGameId] = useState<number | null>(null);
-  const [gamblerHand, setGamblerHand] = useState<Hand | null>(null);
+  const [hands, setHands] = useState<Hand[]>([]);
   const [dealerHand, setDealerHand] = useState<Hand | null>(null);
-  const [deck, setDeck] = useState<Deck | null>(null);
+  const [currentHandId, setCurrentHandId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Récupère et décompresse les params
   useEffect(() => {
     params
       .then(({ id }) => setGameId(parseInt(id, 10)))
       .catch(() => setError('Failed to load game parameters.'));
   }, [params]);
 
-  // Appelle `dealing` une fois que gameId est disponible
   useEffect(() => {
     if (gameId !== null) {
       dealing(gameId)
-        .then(result => {
+        .then((result) => {
           if (R.isOk(result)) {
-            const { gamblerHand, dealerHand, deck } = R.getExn(result);
-            setGamblerHand(Hand.fromJSON(gamblerHand));
+            const { gamblerHand, dealerHand } = R.getExn(result);
+            setHands([Hand.fromJSON(gamblerHand)]);
             setDealerHand(Hand.fromJSON(dealerHand));
-            setDeck(Deck.fromJSON(deck));
+            setCurrentHandId(gamblerHand.id);
           } else {
             setError(R.getExn(result));
           }
         })
-        .catch(err => {
+        .catch((err) => {
           console.error(err);
           setError('An unexpected error occurred.');
         });
     }
   }, [gameId]);
 
+  const handleAction = async (action: string) => {
+    if (gameId === null || currentHandId === null) {
+      setError('Game ID or current hand ID is missing.');
+      return;
+    }
+
+    try {
+      const result = await performActionOnHand(gameId, currentHandId, action);
+
+      setHands(result.hands.map((hand: Hand) => Hand.fromJSON(hand)));
+
+      if (result.current) {
+        setCurrentHandId(result.current);
+      } else {
+        setCurrentHandId(null);
+        handleDealerTurn(gameId);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to perform the action.');
+    }
+  };
+
+  const handleDealerTurn = async (gameId: number) => {
+    const result = await performDealerTurn(gameId);
+
+    if (R.isOk(result)) {
+      const { hand, deck } = R.getExn(result);
+
+      setDealerHand(Hand.fromJSON(hand));
+
+      console.log('Dealer turn successful:', hand, deck);
+    } else {
+      const error = R.getExn(result);
+      console.error('Dealer turn failed:', error);
+      setError('Failed to perform the dealer turn');
+    }
+  };
+
   if (error) {
     return <p>Error: {error}</p>;
   }
 
-  if (!gamblerHand || !dealerHand) {
+  if (!hands.length || !dealerHand) {
     return <p>Loading...</p>;
   }
 
   return (
     <section>
       <h1>Game {gameId}</h1>
-      <HandDisplay title="Gambler Hand" hand={gamblerHand} />
-      <HandDisplay title="Dealer Hand" hand={dealerHand} />
-      <Actions />
+      <h2>Hand {currentHandId}</h2>
+      <div>
+        {hands.map((hand) => (
+          <HandDisplay
+            key={hand.id}
+            title={`Gambler Hand ${hand.id}`}
+            hand={hand}
+            isCurrent={hand.id === currentHandId}
+          />
+        ))}
+        <HandDisplay title="Dealer Hand" hand={dealerHand} />
+      </div>
+      <Actions onAction={handleAction} />
     </section>
   );
 }
 
-function HandDisplay({ title, hand }: { title: string; hand: Hand }) {
+function HandDisplay({ title, hand, isCurrent }: { title: string; hand: Hand; isCurrent?: boolean }) {
   return (
-    <div>
+    <div style={{ border: isCurrent ? '2px solid green' : '1px solid black', padding: '10px' }}>
       <h2>{title}</h2>
-      <p>{hand.cards.map(card => Card.fromJSON(card).toString()).join(', ')}</p>
+      <p>{hand.cards.map((card) => Card.fromJSON(card).toString()).join(', ')}</p>
+      <p>Status: {hand.status}</p>
     </div>
   );
 }
 
-function Actions() {
+function Actions({ onAction }: { onAction: (action: string) => void }) {
+  const actions = ['hit', 'doubleDown', 'split', 'surrender', 'stand'];
+
   return (
-    <div id="actions">
-      <button type="button">Hit</button>
-      <button type="button">Stand</button>
-      <button type="button">Double Down</button>
-      <button type="button">Split</button>
-      <button type="button">Surrender</button>
+    <div className="flex justify-center gap-4 mt-4">
+      {actions.map((action) => (
+        <button
+          key={action}
+          type="button"
+          onClick={() => onAction(action)}
+          className="px-4 py-2 text-white font-bold bg-blue-500 rounded hover:bg-blue-700 transition duration-300"
+        >
+          {action.charAt(0).toUpperCase() + action.slice(1)}
+        </button>
+      ))}
     </div>
   );
 }

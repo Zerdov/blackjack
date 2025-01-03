@@ -8,38 +8,38 @@ describe("Hand", () => {
   const card3 = new Card("9", "Hearts");
 
   it("should add a card to the hand", () => {
-    const hand = new Hand("1", 100, [card1], false);
+    const hand = new Hand("1", 100, [card1], "Active");
     const newHand = hand.addCard(card2);
     expect(newHand.cards.length).toBe(2);
   });
 
   it("should calculate the score of the hand", () => {
-    const hand = new Hand("1", 100, [card1, card2], false);
+    const hand = new Hand("1", 100, [card1, card2], "Active");
     expect(hand.calculateScore()).toBe(21);
   });
 
   it("should return true if the hand is busted", () => {
-    const hand = new Hand("1", 100, [card1, card2, card3], false);
+    const hand = new Hand("1", 100, [card1, card2, card3], "Active");
     expect(hand.isBusted()).toBe(true);
   });
 
   it("should return true if the hand is standing", () => {
-    const hand = new Hand("1", 100, [card1, card2], true);
+    const hand = new Hand("1", 100, [card1, card2], "Standing");
     expect(hand.isStanding()).toBe(true);
   });
 
   it("should return true if the hand is splitable", () => {
-    const hand = new Hand("1", 100, [card2, card2], false);
+    const hand = new Hand("1", 100, [card2, card2], "Active");
     expect(hand.isSplitable()).toBe(true);
   });
 
   it("should return true if the hand is a blackjack", () => {
-    const hand = new Hand("1", 100, [card1, card2], false);
+    const hand = new Hand("1", 100, [card1, card2], "Active");
     expect(hand.isBlackjack()).toBe(true);
   });
 
   it("should convert hand to JSON and back", () => {
-    const hand = new Hand("1", 100, [card1, card2], false);
+    const hand = new Hand("1", 100, [card1, card2], "Active");
     const json = hand.toJSON();
     const newHand = Hand.fromJSON(json);
     expect(newHand).toEqual(hand);

@@ -5,58 +5,80 @@ export class Hand {
   id: string;
   cards: Card[];
   bet: number;
-  stood: boolean;
+  status: "Active" | "Standing" | "Busted" | "Surrendered";
 
-  constructor(id: string, bet: number, cards: Card[], stood: boolean) {
+  constructor(id: string, bet: number, cards: Card[], status: "Active" | "Standing" | "Busted" | "Surrendered") {
     this.id = id;
     this.bet = bet;
     this.cards = cards;
-    this.stood = stood;
+    this.status = status;
   }
 
   // Ajoute une carte à la main
   addCard(card: Card): Hand {
-    return new Hand(this.id, this.bet, [...this.cards, card], this.stood);
+    return new Hand(this.id, this.bet, [...this.cards, card], this.status);
   }
 
   // Détermine le score de la main
   calculateScore(): number {
-    const { total, aces } = A.reduce(
-      this.cards,
-      { total: 0, aces: 0 },
-        (acc, card) => {
-        const value = card.numericValue;
-
-        return {
-          total: acc.total + value,
-          aces: acc.aces + (card.rank === "Ace" ? 1 : 0),
-        };
+    let total = 0;
+    let aces = 0;
+  
+    // Parcourir toutes les cartes
+    for (let i = 0; i < this.cards.length; i++) {
+      const card = this.cards[i];
+      let value = 0;
+  
+      // Déterminer la valeur de la carte
+      if (card.rank === "Ace") {
+        value = 11;
+        aces += 1; // On compte un As
+      } else if (["Jack", "Queen", "King"].includes(card.rank)) {
+        value = 10; // Les figures valent 10
+      } else {
+        value = parseInt(card.rank, 10); // Les autres cartes sont des numéros
       }
-    );
+  
+      total += value; // Ajouter la valeur de la carte au total
+    }
+  
+    // Ajuster la valeur des As si nécessaire (en cas de dépassement de 21)
+    while (total > 21 && aces > 0) {
+      total -= 10; // Chaque As est réduit de 11 à 1
+      aces -= 1; // On réduit le nombre d'As
+    }
+  
+    return total;
+  }
 
-    const adjustedTotal = total - Math.min(aces, Math.floor((total - 21) / 10)) * 10;
+  // Renvoie si la main est active (toujours jouable)
+  isActive(): boolean {
+    return this.status === "Active";
+  }
 
-    return adjustedTotal;
+  // Renvoie si la main est figée
+  isStanding(): boolean {
+    return this.status === "Standing";
   }
 
   // Renvoie si la main est cramée
   isBusted(): boolean {
     return this.calculateScore() > 21;
   }
-
-  // Renvoie si la main est terminée
-  isStanding(): boolean {
-    return this.stood;
-  }
-
-  // Vérifie si la main est scindable
-  isSplitable(): boolean {
-    return this.cards.length === 2 && this.cards[0] === this.cards[1] && !this.isStanding();
+  
+  // Renvoie si la main est abandonnée
+  isSurrendered(): boolean {
+    return this.status === "Surrendered";
   }
 
   // Vérifie si la main est un blackjack
   isBlackjack(): boolean {
     return this.cards.length === 2 && this.calculateScore() === 21;
+  }
+
+  // Vérifie si la main est scindable
+  isSplitable(): boolean {
+    return this.cards.length === 2 && this.cards[0].rank === this.cards[1].rank && this.isActive();
   }
   
   // Affiche une main
@@ -68,7 +90,7 @@ export class Hand {
 
   // Reconstruire l'objet Hand depuis JSON
   static fromJSON(data: any): Hand {    
-    return new Hand(data.id, data.bet, data.cards, data.stood);
+    return new Hand(data.id, data.bet, data.cards, data.status);
   }
 
   // Convertir l'objet Hand en JSON
@@ -77,7 +99,7 @@ export class Hand {
       id: this.id,
       bet: this.bet,
       cards: this.cards,
-      stood: this.stood,
+      status: this.status,
     };
   }
 }

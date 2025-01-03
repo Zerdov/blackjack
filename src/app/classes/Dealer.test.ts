@@ -7,11 +7,11 @@ import { describe, it, expect } from "@jest/globals";
 describe("Dealer", () => {
   const card1 = new Card("Ace", "Spades");
   const card2 = new Card("10", "Hearts");
-  const hand = new Hand("1", 100, [card1, card2], false);
+  const hand = new Hand("1", 100, [card1, card2], "Standing");
   const dealer = new Dealer([hand]);
 
   it("should add a hand to the dealer", () => {
-    const newHand = new Hand("2", 200, [card1], false);
+    const newHand = new Hand("2", 200, [card1], "Standing");
     const newDealer = dealer.addHand(newHand);
     expect(newDealer.hands.length).toBe(2);
   });

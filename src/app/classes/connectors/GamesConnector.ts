@@ -39,11 +39,11 @@ export class GamesConnector {
       
       const deck = new Deck([]).create().shuffle();
       
-      const dealerHand = new Hand(crypto.randomUUID(), 0, [], false);
+      const dealerHand = new Hand(crypto.randomUUID(), 0, [], "Active");
       const dealer = new Dealer([dealerHand]);
       dealer.hit(dealerHand, deck);
   
-      const gamblerHand = new Hand(crypto.randomUUID(), bet, [], false);
+      const gamblerHand = new Hand(crypto.randomUUID(), bet, [], "Active");
       const current_gambler = new Gambler(gambler.id, gambler.name, gambler.tokens, [gamblerHand])
       current_gambler.hit(gamblerHand, deck);
       current_gambler.hit(gamblerHand, deck);

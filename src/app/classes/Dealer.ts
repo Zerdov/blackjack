@@ -27,7 +27,7 @@ export class Dealer {
   }
 
   stand(hand: Hand): Hand {
-    return new Hand(hand.id, hand.bet, hand.cards, true);
+    return new Hand(hand.id, hand.bet, hand.cards, "Standing");
   }
 
   toString(): string {

@@ -3,7 +3,6 @@ import { Hand } from "./Hand";
 import { Deck } from "./Deck";
 import { Card } from "./Card";
 import { matchR } from "@/utils/match";
-import { GamblersConnector } from "./connectors/GamblersConnector";
 
 export class Gambler {
   id: number;
@@ -41,37 +40,39 @@ export class Gambler {
 
   // Met la main comme terminée
   stand(hand: Hand): Hand {
-    return new Hand(hand.id, hand.bet, hand.cards, true);
+    return new Hand(hand.id, hand.bet, hand.cards, "Standing");
   }
 
   // Scinde une main en deux, à revoir
-  split(hand: Hand, deck: Deck): R.Result<{ hands: [Hand, Hand], deck: Deck }, { hand: Hand, deck: Deck }> {
+  split(hand: Hand, deck: Deck): R.Result<{ hands: [Hand, Hand], deck: Deck }, { message: string, hand: Hand, deck: Deck }> {
     // Vérification explicite que la main est splittable
     if (!hand.isSplitable()) {
-      return R.Error({ hand: hand, deck: deck });
+      return R.Error({ message: "Hand is not splitable", hand: hand, deck: deck });
     }
   
     // Déstructuration sûre après la vérification explicite
     const [firstCard, secondCard] = hand.cards;
   
     // Création des deux nouvelles mains
-    const newHand1 = new Hand(crypto.randomUUID(), hand.bet, [firstCard as Card], false);
-    const newHand2 = new Hand(crypto.randomUUID(), hand.bet, [secondCard as Card], false);
+    const newHand1 = new Hand(crypto.randomUUID(), hand.bet, [firstCard as Card], "Active");
+    const newHand2 = new Hand(crypto.randomUUID(), hand.bet, [secondCard as Card], "Active");
   
     // Tirer une carte pour chaque nouvelle main
     const hitResult1 = this.hit(newHand1, deck);
-    const hitResult2 = this.hit(newHand2, deck);
-  
-    // Vérification des résultats du hit
-    if (R.isError(hitResult1) || R.isError(hitResult2)) {
-      return R.Error({ hand: hand, deck: deck });
+    if (R.isError(hitResult1)) {
+      return R.Error({ message: "failed to hit for the first Hand", hand: hand, deck: deck });
+    }
+
+    const { hand: updatedHand1, deck: deckAfterHit1 } = R.getExn(hitResult1);
+    const hitResult2 = this.hit(newHand2, deckAfterHit1);
+
+    if (R.isError(hitResult2)) {
+      return R.Error({ message: "failed to hit for the second Hand", hand: hand, deck: deck });
     }
   
     // Extraire les mains et le deck mis à jour des résultats
-    const updatedHand1 = hitResult1._0.hand;
-    const updatedHand2 = hitResult2._0.hand;
-    const updatedDeck = hitResult2._0.deck;
-  
+    const { hand: updatedHand2, deck: updatedDeck } = R.getExn(hitResult2);
+      
     // Retourner les deux mains et le deck
     return R.Ok({ hands: [updatedHand1, updatedHand2], deck: updatedDeck });
   }
@@ -85,15 +86,15 @@ export class Gambler {
     const newGambler = new Gambler(
       this.id, 
       this.name, 
-      this.tokens - hand.bet,
+      N.subtract(this.tokens, hand.bet),
       this.hands
     );
 
-    const newHand = new Hand(hand.id, hand.bet * 2, hand.cards, hand.stood);
+    const newHand = new Hand(hand.id, hand.bet * 2, hand.cards, "Standing");
 
-    const hitR = this.hit(newHand, deck);
-    if (R.isOk(hitR)) {
-      return R.Ok({ message: "Double Down", gambler: newGambler, hand: newHand, deck: R.getExn(hitR).deck }); 
+    const hitResult = this.hit(newHand, deck);
+    if (R.isOk(hitResult)) {
+      return R.Ok({ message: "Double Down", gambler: newGambler, hand: R.getExn(hitResult).hand, deck: R.getExn(hitResult).deck }); 
     }
 
     return R.Error({ message: "Cannot Double Down", gambler: this, hand: hand, deck: deck });
@@ -101,7 +102,7 @@ export class Gambler {
 
   // Abandonner une main (Surrender)
   surrender(hand: Hand): { gambler : Gambler, hand: Hand } {
-    const newHand = new Hand(hand.id, N.divide(hand.bet, 2), hand.cards, true);
+    const newHand = new Hand(hand.id, hand.bet, hand.cards, "Surrendered");
     const newGambler = new Gambler(this.id, this.name, N.add(this.tokens, N.divide(hand.bet, 2)), this.hands);
     return { gambler: newGambler, hand: newHand };
   }
@@ -109,7 +110,7 @@ export class Gambler {
   // Placer une mise
   placeBet(amount: number, hand: Hand): Result<{ message: "Place Bet", gambler: Gambler, hand: Hand }, { message: "Cannot Place Bet", gambler: Gambler, hand: Hand }> {
     if (amount <= this.tokens) {
-      const newHand = new Hand(hand.id, amount, hand.cards, hand.stood);
+      const newHand = new Hand(hand.id, amount, hand.cards, hand.status);
       const newGambler = new Gambler(
         this.id,
         this.name,
@@ -131,12 +132,10 @@ export class Gambler {
   }
 
   static fromJSON(data: any): Gambler {
-    const connector = new GamblersConnector();
-    const gambler = R.getExn(connector.findGamblerById(data.id));
     return new Gambler(
       data.id,
-      gambler.name,
-      gambler.tokens,
+      data.name,
+      data.tokens,
       data.hands.map((hand: any) => Hand.fromJSON(hand))
     );
   }
