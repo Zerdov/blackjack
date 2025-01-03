@@ -96,11 +96,48 @@ async function performDealerTurn(gameId: number): Promise<R.Result<{ message: st
   }
 }
 
+async function calculatePayout(gameId: number): Promise<
+  R.Result<
+    { totalPayout: number; updatedTokens: number; message: string },
+    string
+  >
+> {
+  try {
+    const response = await fetch("/api/phases/payout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ gameId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return R.Error(errorData.message || "Failed to calculate payout.");
+    }
+
+    const data = await response.json();
+    return R.Ok({
+      totalPayout: data.totalPayout,
+      updatedTokens: data.updatedTokens,
+      message: data.message,
+    });
+  } catch (error) {
+    console.error("Error during payout calculation:", error);
+    return R.Error("An error occurred while contacting the server.");
+  }
+}
+
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
   const [gameId, setGameId] = useState<number | null>(null);
   const [hands, setHands] = useState<Hand[]>([]);
   const [dealerHand, setDealerHand] = useState<Hand | null>(null);
   const [currentHandId, setCurrentHandId] = useState<string | null>(null);
+  const [payoutResult, setPayoutResult] = useState<{
+    totalPayout: number | null;
+    updatedTokens: number | null;
+    message: string | null;
+  }>({ totalPayout: null, updatedTokens: null, message: null });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,6 +148,7 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     if (gameId !== null) {
+      // Charger les mains
       dealing(gameId)
         .then((result) => {
           if (R.isOk(result)) {
@@ -160,7 +198,18 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
 
       setDealerHand(Hand.fromJSON(hand));
 
-      console.log('Dealer turn successful:', hand, deck);
+      // Une fois le tour du dealer terminé, calculer le payout
+      const payoutResult = await calculatePayout(gameId);
+      if (R.isOk(payoutResult)) {
+        const { totalPayout, updatedTokens, message } = R.getExn(payoutResult);
+        setPayoutResult({
+          totalPayout,
+          updatedTokens,
+          message,
+        });
+      } else {
+        setError(R.getExn(payoutResult));
+      }
     } else {
       const error = R.getExn(result);
       console.error('Dealer turn failed:', error);
@@ -192,6 +241,14 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
         <HandDisplay title="Dealer Hand" hand={dealerHand} />
       </div>
       <Actions onAction={handleAction} />
+      {payoutResult.message && (
+        <div className="mt-4 p-4 border rounded bg-gray-100">
+          <h3>Payout Result</h3>
+          <p>{payoutResult.message}</p>
+          <p>Total Payout: {payoutResult.totalPayout}</p>
+          <p>Updated Tokens: {payoutResult.updatedTokens}</p>
+        </div>
+      )}
     </section>
   );
 }
