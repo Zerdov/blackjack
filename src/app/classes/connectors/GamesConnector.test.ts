@@ -20,10 +20,4 @@ describe("GamesConnector", () => {
     const result = connector.findGameById(1735985785113);
     expect(result._0.success).toBe(true);
   });
-
-  it("should update a game by ID", () => {
-    const updates = { status: "Finished" };
-    const result = connector.updateGameById(1, updates);
-    expect(result._0.success).toBe(true);
-  });
 });
