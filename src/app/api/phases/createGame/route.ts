@@ -8,6 +8,10 @@ export async function POST(req: { json: () => PromiseLike<{ bet: string; }> | { 
     const { bet } = await req.json();
     const intBet = parseInt(bet);
   
+    if (isNaN(intBet)) {
+      return new Response(JSON.stringify({ error: "Invalid bet: not a number" }), { status: 400 });
+    }
+
     const gamesConnector = new GamesConnector();
     const gamblersConnector = new GamblersConnector();
   
@@ -20,7 +24,11 @@ export async function POST(req: { json: () => PromiseLike<{ bet: string; }> | { 
     if (R.isError(gamblerResult)) {
       return new Response(JSON.stringify({ message: 'Gambler not found' }), { status: 404 });
     }
+
     const gambler = R.getExn(gamblerResult);
+    if (intBet > gambler.tokens) {
+      return new Response(JSON.stringify({ message: 'Not enough money' }), { status: 500 });
+    }
 
     const newGame = gamesConnector.addGame(gambler, intBet);
     if (R.isOk(newGame)) {
