@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     //   status: "Dealing Done",
     // });
 
-    afterGamblerHit2.hand.cards = [new Card("2", "Clubs"), new Card("2", "Clubs")]
+    //afterGamblerHit2.hand.cards = [new Card("2", "Clubs"), new Card("2", "Clubs")]
     afterGamblerHit2.hand.status = "Active";
 
     const updateResult = gameConnector.updateGameById(gameId, {
