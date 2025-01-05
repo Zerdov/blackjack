@@ -5,7 +5,6 @@ import { Hand } from "@/app/classes/Hand";
 import { R } from "@mobily/ts-belt";
 import { Gambler } from "@/app/classes/Gambler";
 import { Dealer } from "@/app/classes/Dealer";
-import { Card } from "@/app/classes/Card";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -69,19 +68,6 @@ export async function POST(req: NextRequest) {
     const afterGamblerHit2 = hit(gambler, afterGamblerHit1.hand, afterGamblerHit1.deck);
 
     // Mise à jour du jeu
-    // const updateResult = gameConnector.updateGameById(gameId, {
-    //   deck: afterGamblerHit2.deck,
-    //   gamblerData: {
-    //     id: gambler.id,
-    //     hands: [afterGamblerHit2.hand],
-    //   },
-    //   dealer: new Dealer([afterDealerHit.hand]),
-    //   status: "Dealing Done",
-    // });
-
-    //afterGamblerHit2.hand.cards = [new Card("2", "Clubs"), new Card("2", "Clubs")]
-    afterGamblerHit2.hand.status = "Active";
-
     const updateResult = gameConnector.updateGameById(gameId, {
       deck: afterGamblerHit2.deck,
       gamblerData: {
